@@ -1,5 +1,5 @@
 """
- Copyright 2022 Guilherme Gois
+ Copyright 2022 github.com/P1514
  
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -17,25 +17,30 @@
 from calendar import weekday
 from dataclasses import dataclass
 from datetime import date, timedelta
+import math
 from operator import contains
 import random
+import sys
 from time import sleep
 from os.path import exists
 
 #inputs
-n_oper = 11
-n_auxprod=6
-n_eng=5
-n_control=3
-n_arm=2
-n_log=3
+#n_oper = 11
+#n_auxprod=6
+#n_eng=5
+#n_control=3
+#n_arm=2
+#n_log=3
 
-min_oper= 9
-min_auxprod= 5
-min_eng= 4
-min_control= 2
-min_arm= 1
-min_log= 2
+efficiency = False
+
+positions = dict()
+positions["Operador"] = 9
+positions["Auxiliar de Produção"] = 5
+positions["Engenheiros"] = 4
+positions["Controlo"] = 2
+positions["Armazem"] = 1
+positions["Logistica"] = 2
 
 #WARNING: START DATE MUST BE A SUNDAY
 start_date = date(2022, 4, 3)
@@ -47,6 +52,26 @@ load_file=False
 
 
 result = {}
+@dataclass
+class Shift:
+    rests: int
+    workdays: int
+    stop_days: list
+
+
+    def __post_init__(self):
+        if self.workdays + len(self.stop_days) > 7:
+            raise NotImplementedError("Multiweek work schedule not supported")
+            
+
+#Shift Definition
+shifts = []
+shifts.append(Shift(1,6,[7]))
+shifts.append(Shift(1,6,[7]))
+shifts.append(Shift(0,5,[6,7]))
+#End Shift Definition
+
+
 @dataclass
 class Pessoa:
     turno: int
@@ -110,45 +135,35 @@ def make_shift(n_ppl, nomes, grupo, posicao):
 
     return pre_result
 
-def make_shifts(n_ppl, nomes, posicao):
+def make_shifts(nworkers, position):
     pre_result = []
-    nomes_grupo = [[],[],[]]
-    for nome, grupo in nomes:
-        nomes_grupo[grupo].append(nome)
-    for i in range(3):
-        pre_result +=make_shift(n_ppl,nomes_grupo[i], i, posicao)
+    workers = [[],[],[]]
+    for nome, grupo in names[position]:
+        workers[grupo].append(nome)
+    for i in range(len(shifts)):
+        pre_result += make_shift(nworkers,workers[i], i, position)
     
     return pre_result
  
+def required_people_per_shift(positions):
+    fill_coefficient = 0
+    for shift in shifts:
+        fill_coefficient = max(fill_coefficient, shift.rests / shift.workdays)
+    for position, min_workers in positions.items():
+        #Missing Efficiency Here
+        positions[position] = min_workers + math.ceil(min_workers * fill_coefficient)
 
-def make_people(n_oper, n_auxprod, n_eng, n_control, n_arm, n_log):
-    nomes = {}
-    nomes['oper'] = []
-    nomes['aux'] = []
-    nomes['eng'] = []
-    nomes['control'] = []
-    nomes['arm'] = []
-    nomes['log'] = []
-    if not exists("result.csv"):
-        for grupo in range(3):
-            for i in range(n_oper):
-                nomes['oper'].append([random.randint(0,100), grupo])
-            for i in range(n_auxprod):
-                nomes['aux'].append([random.randint(0,100), grupo])
-            for i in range(n_eng):
-                nomes['eng'].append([random.randint(0,100), grupo])  
-            for i in range(n_control):
-                nomes['control'].append([random.randint(0,100), grupo])            
-            for i in range(n_arm):
-                nomes['arm'].append([random.randint(0,100), grupo])           
-            for i in range(n_log):
-                nomes['log'].append([random.randint(0,100), grupo])
-    else:
-        with open("turnos.csv") as file:
-            pass
+def make_people():
+    names = {}
+    for position, nworkers in positions.items():
+        names[position] = []
+        for grupo in range(len(shifts)):
+            for i in range(nworkers):
+                names[position].append([random.randint(0,100), grupo])
+    return names
 
 
-    return nomes
+required_people_per_shift(positions)
 
 if getweekday(start_date) != 7:
     print("O PRIMEIRO DIA TEM DE SER UM DOMINGO")
@@ -168,18 +183,14 @@ for single_date in timeframe:
 result+="\n"
 
        
-##Make Operators
+#Make Operators
 pre_result = []
 
-nomes = make_people(n_oper, n_auxprod, n_eng, n_control, n_arm, n_log)
+names = make_people()
 
+for position, nworkers in positions.items():
+    pre_result += make_shifts(nworkers, position)
 
-pre_result += make_shifts(n_oper, nomes['oper'], "Operadores")
-pre_result += make_shifts(n_auxprod, nomes['aux'], "Auxiliar de Produção")
-pre_result += make_shifts(n_eng, nomes['eng'], "Engenheiros")
-pre_result += make_shifts(n_control,nomes['control'], "Controlo de Qualidade")
-pre_result += make_shifts(n_arm,nomes['arm'],"Armazém")
-pre_result += make_shifts(n_log,nomes['log'],"Logistica")
 for line in pre_result:
     result+=",".join(line)+"\n"
 
