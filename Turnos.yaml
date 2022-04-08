@@ -1,0 +1,33 @@
+Turnos:
+- Nome: Manhã
+  Inicio: 05
+  Fim: 13
+- Nome: Tarde
+  Inicio: 13
+  Fim: 21
+- Nome: Noite
+  Inicio: 21
+  Fim: 05
+Dias:
+- Segunda:
+  - Tarde
+  - Noite
+- Terça:
+  - Manhã
+  - Tarde
+  - Noite
+- Quarta:
+  - Manhã
+  - Tarde
+  - Noite
+- Quinta:
+  - Manhã
+  - Tarde
+  - Noite
+- Sexta:
+  - Manhã
+  - Tarde
+  - Noite
+- Sabado:
+  - Manhã
+  - Tarde
