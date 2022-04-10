@@ -15,6 +15,7 @@
  """
 
 from calendar import weekday
+from cmath import nan
 from dataclasses import dataclass
 from datetime import date, timedelta
 import math
@@ -28,15 +29,19 @@ import pandas as pd
 @dataclass
 class Shift:
     name: int
-    rests: int
-    workdays: int
     stop_days: list
     code: str
-
+    rests: int = 0
+    workdays: int = 0
 
     def __post_init__(self):
+        self.stop_days = list(map(int, str(self.stop_days).split(",")))
+
         if self.workdays + len(self.stop_days) > 7:
             raise NotImplementedError("Multiweek work schedule not supported")
+
+        self.rests = 2 - len(self.stop_days)
+        self.workdays = 7 - len(self.stop_days)
             
 @dataclass
 class People:
@@ -71,11 +76,6 @@ positions.append(Position("Armazem",[0,1,2],1))
 positions.append(Position("Logistica",[0,1,2],2))
 #End Positions
 
-
-#WARNING: START DATE MUST BE A SUNDAY
-start_date = date(2022, 4, 11)
-end_date = date(2022, 12, 31)
-
 #endinputs dont change anything else
 
 load_file=False
@@ -83,9 +83,6 @@ load_file=False
 
 #Shift Definition
 shifts = []
-shifts.append(Shift(0,1,6,[7], "M"))
-shifts.append(Shift(1, 1,6,[7], "T"))
-shifts.append(Shift(2, 0,5,[6,7], "N"))
 #End Shift Definition
 
 
@@ -155,9 +152,18 @@ def make_people():
 
 
 #Read Excel Data
-open("")
+inputs =  pd.read_excel('Planeamento Turnos.xlsx', None)
+conf = inputs["Configuração"]
+start_date = conf["Inicio"][0]
+end_date = conf["Fim"][0]
 
-sys.exit(1)
+i = 0
+for shift, rest in zip(conf["Codigo Turnos"],conf["Descanço"]):
+    if pd.isna(shift) or pd.isna(rest):
+        break
+    print(str(shift) + str(rest))
+    shifts.append(Shift(i,rest, shift))
+    i = i + 1
 #Finish Read Excel Data
 
 
