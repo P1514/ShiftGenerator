@@ -49,6 +49,7 @@ class People:
     position: str
     cur_shift: int
     worklist: list = list
+    double_rest: int = 0
 
 
     def __post_init__(self):
@@ -73,19 +74,6 @@ class Position:
 
 #NOT USED YET
 efficiency = False
-
-
-#Positions
-
-#positions.append(Position("Operador", [0,1,2], 9))
-#positions.append(Position("Auxiliar de Produção",[0,1,2],5))
-#positions.append(Position("Engenheiros",[0,1,2],4))
-#positions.append(Position("Controlo",[0,1,2],2))
-#positions.append(Position("Armazem",[0,1,2],1))
-#positions.append(Position("Logistica",[0,1,2],2))
-#End Positions
-
-#endinputs dont change anything else
 
 load_file=False
 
@@ -118,10 +106,24 @@ def get_current_shift_workers(workers, shift):
 
     return shift_workers
 
+def check_if_consecutive(stop_days, rest):
+    for stop_day in stop_days:
+        if (stop_day+1) % 7 == rest or stop_day == (rest + 1) % 7:
+            return True
+    return False
+
+def get_double_rest(workers):
+    double_rest = 0
+    for worker in workers:
+        double_rest = min(double_rest, worker.double_rest)
+    
+    return double_rest
+
 def make_shift(workers, position):
     timeframe = daterange(start_date, end_date)
     for single_date in timeframe:
         assign_people_to_shift(workers, position)
+        double_rest = get_double_rest(workers)
         for shift in position.shifts:
             shift = shifts[shift]
             shift_code = shift.code
@@ -136,6 +138,14 @@ def make_shift(workers, position):
                 for i in range(shift.rests):
                     if len(available_rests) == 0:
                         available_rests = get_possible_rest_days(shift.stop_days)
+                    rest = available_rests.pop()
+
+                    if check_if_consecutive(shift.stop_days, rest) and double_rest == worker.double_rest:
+                        worker.double_rest = worker.double_rest + 1
+                    else:
+                        available_rests.append(rest)
+                        rest = available_rests.pop()
+
                     worklist[-7+available_rests.pop()-1] = "D"
 
 
@@ -174,7 +184,6 @@ i = 0
 for shift, rest in zip(conf["Codigo Turnos"],conf["Descanço"]):
     if pd.isna(shift) or pd.isna(rest):
         break
-    print(str(shift) + str(rest))
     shifts.append(Shift(i,rest, shift))
     i = i + 1
 
@@ -206,14 +215,14 @@ for position in positions:
     make_shift(people[position.name], position)
 
 
-csv_result = ",".join(header)
+csv_result = ";".join(header)
 csv_result += "\n"
 
 for position, workers in people.items():
     for worker in workers:
-        csv_result += f'{position},'
-        csv_result += f'{worker.name},'
-        csv_result += ",".join(worker.worklist)
+        csv_result += f'{position};'
+        csv_result += f'{worker.name};'
+        csv_result += ";".join(worker.worklist)
         csv_result += "\n"
 
 file_name = "turnos_novo.csv" if load_file else "turnos.csv"
