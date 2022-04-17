@@ -61,30 +61,36 @@ class Position:
     min_people: int
     required_people: int = 0
 
+    def __post_init__(self):
+        parsed_shifts = []
+        for shift_code in self.shifts.split(","):
+            for shift in shifts:
+                if shift.code == shift_code:
+                    parsed_shifts.append(shift.name)
+                    break
+        self.shifts = parsed_shifts
+            
 
 #NOT USED YET
 efficiency = False
 
 
 #Positions
-positions = list()
-positions.append(Position("Operador", [0,1,2], 9))
-positions.append(Position("Auxiliar de Produção",[0,1,2],5))
-positions.append(Position("Engenheiros",[0,1,2],4))
-positions.append(Position("Controlo",[0,1,2],2))
-positions.append(Position("Armazem",[0,1,2],1))
-positions.append(Position("Logistica",[0,1,2],2))
+
+#positions.append(Position("Operador", [0,1,2], 9))
+#positions.append(Position("Auxiliar de Produção",[0,1,2],5))
+#positions.append(Position("Engenheiros",[0,1,2],4))
+#positions.append(Position("Controlo",[0,1,2],2))
+#positions.append(Position("Armazem",[0,1,2],1))
+#positions.append(Position("Logistica",[0,1,2],2))
 #End Positions
 
 #endinputs dont change anything else
 
 load_file=False
 
-
-#Shift Definition
-shifts = []
-#End Shift Definition
-
+shifts = list()
+positions = list()
 
 def daterange(start_date, end_date, step = 7, start = 7):
     for n in range(start, int((end_date - start_date).days),step):
@@ -150,6 +156,13 @@ def make_people():
                 people[position.name].append(People(random.randint(0,100), position.name, shift))
     return people
 
+def add_position(positions, position, shift, workers):
+    for pos in positions:
+        if pos.name == position:
+            pos.min_people = pos.min_people + workers
+            return
+    positions.append(Position(position, shift, workers))
+
 
 #Read Excel Data
 inputs =  pd.read_excel('Planeamento Turnos.xlsx', None)
@@ -164,6 +177,10 @@ for shift, rest in zip(conf["Codigo Turnos"],conf["Descanço"]):
     print(str(shift) + str(rest))
     shifts.append(Shift(i,rest, shift))
     i = i + 1
+
+for position, min_workers, n_equips, shift in zip(conf["Nome"],conf["Minimo"],conf["Nº Equipamentos"],conf["Turnos"]):
+    add_position(positions, position, shift, min_workers*n_equips)
+
 #Finish Read Excel Data
 
 
