@@ -50,6 +50,7 @@ class People:
     cur_shift: int
     worklist: list = list
     double_rest: int = 0
+    cur_rest: int = 0
 
 
     def __post_init__(self):
@@ -96,6 +97,16 @@ def get_possible_rest_days(stop_days):
     random.shuffle(rest_days)
     for day in stop_days:
         rest_days.remove(day)
+        day_after = ((day + 1) % 7 )
+        day_before = 7 if day == 1 else ((day - 1) % 7)
+        if day_after in rest_days:
+            rest_days.remove(day_after)
+            rest_days.insert(0, day_after)
+        
+        if day_before in rest_days:
+            rest_days.remove(day_before)
+            rest_days.insert(0, day_before)
+
     return rest_days
 
 def get_current_shift_workers(workers, shift):
@@ -108,12 +119,12 @@ def get_current_shift_workers(workers, shift):
 
 def check_if_consecutive(stop_days, rest):
     for stop_day in stop_days:
-        if (stop_day+1) % 7 == rest or stop_day == (rest + 1) % 7:
+        if stop_day - 1 == rest or stop_day + 1 == rest or (stop_day == 7 and rest == 1) or (stop_day == 1 and rest == 7) :
             return True
     return False
 
 def get_double_rest(workers):
-    double_rest = 0
+    double_rest = sys.maxsize
     for worker in workers:
         double_rest = min(double_rest, worker.double_rest)
     
@@ -123,30 +134,37 @@ def make_shift(workers, position):
     timeframe = daterange(start_date, end_date)
     for single_date in timeframe:
         assign_people_to_shift(workers, position)
-        double_rest = get_double_rest(workers)
         for shift in position.shifts:
             shift = shifts[shift]
             shift_code = shift.code
-            available_rests = get_possible_rest_days(shift.stop_days)
             shift_workers = get_current_shift_workers(workers, shift.name)
+            # Give Stop Days
             for worker in shift_workers:
                 worklist = worker.worklist
                 worklist += [shift_code]*7
                 for stop_day in shift.stop_days:
                     worklist[(-7+stop_day-1)]= "D"
+            # Give Stop Days
 
-                for i in range(shift.rests):
-                    if len(available_rests) == 0:
-                        available_rests = get_possible_rest_days(shift.stop_days)
-                    rest = available_rests.pop()
-
-                    if check_if_consecutive(shift.stop_days, rest) and double_rest == worker.double_rest:
-                        worker.double_rest = worker.double_rest + 1
-                    else:
-                        available_rests.append(rest)
-                        rest = available_rests.pop()
-
-                    worklist[-7+available_rests.pop()-1] = "D"
+            while (len(shift_workers) > 0):
+                available_rests = get_possible_rest_days(shift.stop_days)
+            
+                for day in available_rests:
+                    for worker in shift_workers:
+                        if worker.cur_rest == shift.rests:
+                            worker.cur_rest = 0
+                            shift_workers.remove(worker)
+                            continue
+                        double_rest = get_double_rest(shift_workers)
+                        if check_if_consecutive(shift.stop_days, day) :
+                            if double_rest == worker.double_rest:
+                                worker.double_rest = worker.double_rest + 1
+                            else:
+                                continue
+                        
+                        worker.worklist[-7+day-1] = "D"
+                        worker.cur_rest = worker.cur_rest + 1
+                        break
 
 
 def required_people_per_shift(positions):
@@ -158,12 +176,14 @@ def required_people_per_shift(positions):
         position.required_people = position.min_people + math.ceil(position.min_people * fill_coefficient)
 
 def make_people():
+    worker_number = 1
     people = {}
     for position in positions:
         people[position.name] = []
         for shift in range(len(shifts)):
             for i in range(position.required_people):
-                people[position.name].append(People(random.randint(0,100), position.name, shift))
+                people[position.name].append(People(worker_number, position.name, shift))
+                worker_number = worker_number + 1
     return people
 
 def add_position(positions, position, shift, workers):
@@ -175,7 +195,7 @@ def add_position(positions, position, shift, workers):
 
 
 #Read Excel Data
-inputs =  pd.read_excel('Planeamento Turnos.xlsx', None)
+inputs =  pd.read_excel('Planeamento Turnos - fich gui.xlsx', None)
 conf = inputs["Configuração"]
 start_date = conf["Inicio"][0]
 end_date = conf["Fim"][0]
@@ -228,3 +248,5 @@ for position, workers in people.items():
 file_name = "turnos_novo.csv" if load_file else "turnos.csv"
 with open(file_name,"w") as file:
     file.write(csv_result)
+
+print("Done")
