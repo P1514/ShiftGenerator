@@ -227,26 +227,28 @@ timeframe = daterange(start_date, end_date, 1, 0)
 header = ["Posição","Nome"]
 
 for single_date in timeframe:
-    header.append(str(single_date))
+    header.append(str(single_date)[0:11])
 
 people = make_people()
 
 for position in positions:
     make_shift(people[position.name], position)
 
-
-csv_result = ";".join(header)
-csv_result += "\n"
-
+result = []
 for position, workers in people.items():
     for worker in workers:
-        csv_result += f'{position};'
-        csv_result += f'{worker.name};'
-        csv_result += ";".join(worker.worklist)
-        csv_result += "\n"
+        entry = [position, worker.name] 
+        entry += worker.worklist
+        result.append(entry)
 
-file_name = "turnos_novo.csv" if load_file else "turnos.csv"
-with open(file_name,"w") as file:
-    file.write(csv_result)
+#file_name = "turnos_novo.csv" if load_file else "turnos.csv"
+#with open(file_name,"w") as file:
+#    file.write(csv_result)
+size_header = math.floor((len(header) - 2) / 7) - 1
+header = header[0:size_header*7 + 2]
+
+df1 = pd.DataFrame(result,columns=header)
+
+df1.to_excel("Resultado Turnos.xlsx") 
 
 print("Done")
