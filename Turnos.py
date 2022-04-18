@@ -25,6 +25,7 @@ import sys
 from time import sleep
 from os.path import exists
 import pandas as pd
+import xlsxwriter
 
 @dataclass
 class Shift:
@@ -227,7 +228,7 @@ timeframe = daterange(start_date, end_date, 1, 0)
 header = ["Posição","Nome"]
 
 for single_date in timeframe:
-    header.append(str(single_date)[0:11])
+    header.append(single_date)
 
 people = make_people()
 
@@ -247,8 +248,33 @@ for position, workers in people.items():
 size_header = math.floor((len(header) - 2) / 7) - 1
 header = header[0:size_header*7 + 2]
 
-df1 = pd.DataFrame(result,columns=header)
+df = pd.DataFrame(result,columns=header)
 
-df1.to_excel("Resultado Turnos.xlsx") 
+writer = pd.ExcelWriter("Resultado Turnos.xlsx", engine='xlsxwriter')
+
+df.to_excel(writer, sheet_name='Sheet1')
+
+# Get the xlsxwriter workbook and worksheet objects.
+workbook  = writer.book
+worksheet = writer.sheets['Sheet1']
+format1 = workbook.add_format({'bg_color': '#D9D9D9',
+                               'font_color': '#000000'})
+format2 = workbook.add_format({'bg_color': '#A6A6A6',
+                               'font_color': '#000000'})
+# Get the dimensions of the dataframe.
+(max_row, max_col) = df.shape
+
+# Apply a conditional format to the required cell range.
+worksheet.conditional_format(0, 0, max_row, max_col,
+                             {'type': 'formula',
+                             'criteria': '=WEEKDAY(A$1)=1',
+                             'format':   format1})
+worksheet.conditional_format(0, 0, max_row, max_col,
+                             {'type': 'formula',
+                             'criteria': '=AND(WEEKDAY(A$1)<>1,A1="D")',
+                             'format':   format2})
+
+
+writer.save()
 
 print("Done")
