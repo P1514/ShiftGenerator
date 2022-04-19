@@ -223,7 +223,7 @@ end_date_wd = getweekday(end_date)
 if start_date_wd != 1:
     start_date = start_date - timedelta(start_date_wd - 1)
 
-if end_date_wd != 1:
+if end_date_wd != 7:
     end_date = end_date + timedelta(7 - end_date_wd)
 
 
