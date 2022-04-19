@@ -224,7 +224,7 @@ if start_date_wd != 1:
     start_date = start_date - timedelta(start_date_wd - 1)
 
 if end_date_wd != 1:
-    end_date = start_date - timedelta(7 - end_date_wd)
+    end_date = end_date - timedelta(7 - end_date_wd)
 
 
 timeframe = daterange(start_date, end_date, 1, 0)
