@@ -83,7 +83,7 @@ shifts = list()
 positions = list()
 
 def daterange(start_date, end_date, step = 7, start = 7):
-    for n in range(start, int((end_date - start_date).days),step):
+    for n in range(start, int((end_date - start_date).days + step),step):
         yield start_date + timedelta(n)
 
 def getweekday(single_date):
@@ -216,11 +216,15 @@ for position, min_workers, n_equips, shift in zip(conf["Nome"],conf["Minimo"],co
 
 required_people_per_shift(positions)
 
-if getweekday(start_date) != 1:
-    print("O PRIMEIRO DIA TEM DE SER UMA Segunda")
-    sleep(5)
-    exit(1)
+start_date_wd = getweekday(start_date)
+end_date_wd = getweekday(end_date)
 
+
+if start_date_wd != 1:
+    start_date = start_date - timedelta(start_date_wd - 1)
+
+if end_date_wd != 1:
+    end_date = start_date - timedelta(7 - end_date_wd)
 
 
 timeframe = daterange(start_date, end_date, 1, 0)
@@ -245,7 +249,7 @@ for position, workers in people.items():
 #file_name = "turnos_novo.csv" if load_file else "turnos.csv"
 #with open(file_name,"w") as file:
 #    file.write(csv_result)
-size_header = math.floor((len(header) - 2) / 7) - 1
+size_header = math.floor((len(header) - 2) / 7) 
 header = header[0:size_header*7 + 2]
 
 df = pd.DataFrame(result,columns=header)
@@ -268,11 +272,11 @@ format2 = workbook.add_format({'bg_color': '#A6A6A6',
 worksheet.conditional_format(0, 0, max_row, max_col,
                              {'type': 'formula',
                              'criteria': '=WEEKDAY(A$1)=1',
-                             'format':   format1})
+                             'format':   format2})
 worksheet.conditional_format(0, 0, max_row, max_col,
                              {'type': 'formula',
                              'criteria': '=AND(WEEKDAY(A$1)<>1,A1="D")',
-                             'format':   format2})
+                             'format':   format1})
 
 
 writer.save()
