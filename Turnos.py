@@ -36,7 +36,7 @@ class Shift:
     workdays: int = 0
 
     def __post_init__(self):
-        self.stop_days = list(map(int, str(self.stop_days).split(",")))
+        self.stop_days = list(map(int, map(float,str(self.stop_days).split(","))))
 
         if self.workdays + len(self.stop_days) > 7:
             raise NotImplementedError("Multiweek work schedule not supported")
